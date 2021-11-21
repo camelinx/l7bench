@@ -22,10 +22,10 @@ l7bench:
 test:
 	$(DOCKER_RUN) $(GOLANG_CONTAINER) go test ./...
 
-container: l7bench
+image: l7bench
 	docker build -f $(DOCKERFILE) -t $(PREFIX):$(TAG) .
 
-push: container
+push: image
 	docker push $(PREFIX):$(TAG)
 
 clean:
