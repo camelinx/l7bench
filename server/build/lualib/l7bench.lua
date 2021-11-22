@@ -2,9 +2,8 @@ local _M = { }
 
 local function get_random_string( length )
     local res = ""
-    local len = tonumber( length )
 
-    for i = 1, len do
+    for i = 1, length do
         res = res .. string.char( math.random( 97, 122 ) )
     end
 
@@ -18,13 +17,12 @@ end
 local function get_json_string( length )
     local json_doc = "{"
     local nbytes   = 1
-    local len      = tonumber( length )
 
     local kv, kvlen = get_one_json_kv( )
     json_doc        = json_doc .. kv
     nbytes          = nbytes + kvlen
 
-    while( nbytes < len )
+    while( nbytes < length )
     do
         json_doc = json_doc .. ","
         nbytes   = nbytes + 1
@@ -44,18 +42,30 @@ local function parse_request( )
     local length = 1
     if( nil ~= ngx.var.http_x_response_size )
 	then
-        length = ngx.var.http_x_response_size
+        length = tonumber( ngx.var.http_x_response_size )
+    elseif( nil ~= ngx.var.arg_response_size )
+    then
+        length = tonumber( ngx.var.arg_response_size )
 	end
+
+    if( ( nil == length ) or ( length < 0 ) )
+    then
+        length = 1
+    end
 
 	local code = ngx.HTTP_OK
 	if( nil ~= ngx.var.http_x_response_code )
 	then
-        code = ngx.var.http_x_response_code
-		if( ( code < ngx.HTTP_CONTINUE ) or ( code >= 600 ) )
-        then
-            code = ngx.HTTP_OK
-        end
+        code = tonumber( ngx.var.http_x_response_code )
+    elseif( nil ~= ngx.var.arg_response_code )
+    then
+        code = tonumber( ngx.var.arg_response_code )
 	end
+
+    if( ( nil == code ) or ( code < ngx.HTTP_CONTINUE ) or ( code > 599 ) )
+    then
+        code = ngx.HTTP_OK
+    end
 
 	return length, code
 end
