@@ -40,12 +40,12 @@ end
 
 local function parse_request( )
     local length = 1
-    if( nil ~= ngx.var.http_x_response_size )
-	then
-        length = tonumber( ngx.var.http_x_response_size )
-    elseif( nil ~= ngx.var.arg_response_size )
+    if( nil ~= ngx.var.arg_response_size )
     then
         length = tonumber( ngx.var.arg_response_size )
+    elseif( nil ~= ngx.var.http_x_response_size )
+	then
+        length = tonumber( ngx.var.http_x_response_size )
 	end
 
     if( ( nil == length ) or ( length < 0 ) )
@@ -54,12 +54,12 @@ local function parse_request( )
     end
 
 	local code = ngx.HTTP_OK
-	if( nil ~= ngx.var.http_x_response_code )
+    if( nil ~= ngx.var.arg_response_code )
 	then
-        code = tonumber( ngx.var.http_x_response_code )
-    elseif( nil ~= ngx.var.arg_response_code )
-    then
         code = tonumber( ngx.var.arg_response_code )
+    elseif( nil ~= ngx.var.http_x_response_code )
+    then
+        code = tonumber( ngx.var.http_x_response_code )
 	end
 
     if( ( nil == code ) or ( code < ngx.HTTP_CONTINUE ) or ( code > 599 ) )
