@@ -10,6 +10,7 @@ import (
     "io/ioutil"
     "net/http"
     "crypto/tls"
+    "github.com/golang/glog"
 )
 
 func NewHttpBench( )( *HttpBench ) {
@@ -31,6 +32,7 @@ func NewHttpBench( )( *HttpBench ) {
 func ( hBench *HttpBench )Start( ) {
     err := hBench.setupRequest( )
     if err != nil {
+        glog.Errorf( "Request setup failed with error %v", err )
         return
     }
 
@@ -129,7 +131,7 @@ func ( hBench *HttpBench )runSingleTest( ) {
     for i := uint( 0 ); i < hBench.ConnReqs; i++ {
         err := hBench.sendSingleRequest( httpClient )
         if err != nil {
-            fmt.Printf( "test failed with error %v\n", err )
+            glog.Errorf( "Test failed with error %v", err )
             break
         }
 
