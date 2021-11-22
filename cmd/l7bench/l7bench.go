@@ -34,15 +34,14 @@ func main( ) {
         glog.Fatalf( "Error setting logtostderr to true: %v", err )
     }
 
-    if len( *host ) == 0 {
-        glog.Fatalf( "Test host cannot be empty" )
-    }
-
     glog.Infof( "Starting l7bench %v", version )
 
     httpBench := l7bhttp.NewHttpBench( )
 
-    httpBench.Host = *host
+    setupString( &httpBench.Host, host, "L7BENCH_TEST_HOST" )
+    if 0 == len( httpBench.Host ) {
+        glog.Fatalf( "Test host cannot be empty" )
+    }
 
     setupString( &httpBench.Method, method, "L7BENCH_TEST_METHOD" )
     setupString( &httpBench.Url, url, "L7BENCH_TEST_URL" )
@@ -87,7 +86,7 @@ func setupString( field, arg *string, envVar string ) {
 func setupBool( field, arg *bool, envVar string ) {
     envVal := os.Getenv( envVar )
     if len( envVal ) > 0 {
-        if boolVal, err := strconv.ParseBool( envVal ); err == nil {
+        if boolVal, err := strconv.ParseBool( envVal ); nil == err {
             *field = boolVal
             return
         }
@@ -101,7 +100,7 @@ func setupBool( field, arg *bool, envVar string ) {
 func setupUint( field, arg *uint, envVar string ) {
     envVal := os.Getenv( envVar )
     if len( envVal ) > 0 {
-        if uintVal, err := strconv.ParseUint( envVal, 10, 64 ); err == nil {
+        if uintVal, err := strconv.ParseUint( envVal, 10, 64 ); nil == err {
             *field = uint( uintVal )
             return
         }
@@ -115,7 +114,7 @@ func setupUint( field, arg *uint, envVar string ) {
 func setupDuration( field, arg *time.Duration, envVar string ) {
     envVal := os.Getenv( envVar )
     if len( envVal ) > 0 {
-        if durVal, err := time.ParseDuration( envVal ); err == nil {
+        if durVal, err := time.ParseDuration( envVal ); nil == err {
             *field = durVal
             return
         }

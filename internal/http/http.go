@@ -44,7 +44,7 @@ func ( hBench *HttpBench )Start( ) {
 }
 
 func ( hBench *HttpBench )setupRequest( )( err error ) {
-    if len( hBench.Host ) == 0 {
+    if 0 == len( hBench.Host ) {
         return fmt.Errorf( "empty test host" )
     }
 
