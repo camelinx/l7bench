@@ -115,8 +115,6 @@ func ( hBench *HttpBench )cleanup( ) {
 }
 
 func ( hBench *HttpBench )runSingleTest( ) {
-    defer hBench.wg.Done( )
-
     httpClient := &http.Client {
         Transport: &http.Transport {
             MaxIdleConns:       1,
@@ -128,6 +126,12 @@ func ( hBench *HttpBench )runSingleTest( ) {
         },
     }
 
+    defer func( ) {
+        httpClient.CloseIdleConnections( )
+        hBench.conns_chan <- true
+        hBench.wg.Done( )
+    }( )
+
     for i := uint( 0 ); i < hBench.ConnReqs; i++ {
         err := hBench.sendSingleRequest( httpClient )
         if err != nil {
@@ -137,9 +141,6 @@ func ( hBench *HttpBench )runSingleTest( ) {
 
         time.Sleep( hBench.ConnReqInterval )
     }
-
-    httpClient.CloseIdleConnections( )
-    hBench.conns_chan <- true
 }
 
 func ( hBench *HttpBench )sendSingleRequest( httpClient *http.Client )( err error ) {
@@ -147,6 +148,7 @@ func ( hBench *HttpBench )sendSingleRequest( httpClient *http.Client )( err erro
     if err != nil {
         return err
     }
+
     defer func( ) {
         io.Copy( ioutil.Discard, resp.Body )
         resp.Body.Close( )
