@@ -21,11 +21,26 @@ func NewHttpBench( )( *HttpBench ) {
         InsecureSkipVerify  :   false,
         Method              :   http.MethodGet,
         Url                 :   "/",
+        ReqBodySize         :   0,
+        ReqBodyType         :   httpBenchReqBodyTypePlain,
 
         httpBenchCtx        :   httpBenchCtx {
             wg              :   &sync.WaitGroup{ }, 
             duration_chan   :   make( chan bool ),
         },
+    }
+}
+
+func ( hBench *HttpBench )SetupHttpBenchReqBodyType( bodyType string ) {
+    switch httpBenchReqBodyType( bodyType ) {
+        case httpBenchReqBodyTypePlain:
+            hBench.ReqBodyType = httpBenchReqBodyTypePlain
+
+        case httpBenchReqBodyTypeJson:
+            hBench.ReqBodyType = httpBenchReqBodyTypeJson
+
+        default:
+            hBench.ReqBodyType = httpBenchReqBodyTypePlain
     }
 }
 

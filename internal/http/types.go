@@ -15,6 +15,14 @@ type httpBenchCtx struct {
     request              *http.Request
 }
 
+type httpBenchReqBodyType string
+
+const (
+    httpBenchReqBodyTypePlain httpBenchReqBodyType = "plain"
+
+    httpBenchReqBodyTypeJson  httpBenchReqBodyType = "json"
+)
+
 type HttpBench struct {
     ConcurrentConns       uint
     Duration              time.Duration
@@ -29,6 +37,8 @@ type HttpBench struct {
     Port                  string
     Method                string
     Url                   string
+    ReqBodySize           uint
+    ReqBodyType           httpBenchReqBodyType
 
     httpBenchCtx
 }
