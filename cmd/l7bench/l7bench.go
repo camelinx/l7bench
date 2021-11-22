@@ -1,11 +1,12 @@
 package main
 
 import (
-    "fmt"
     "flag"
     "os"
     "time"
+    "strconv"
 
+    "github.com/golang/glog"
     l7bhttp "github.com/l7bench/internal/http"
 )
 
@@ -26,37 +27,101 @@ var (
 )
 
 func main( ) {
-    if len( *host ) == 0 {
-        fmt.Println( "Test host cannot be empty" )
-        os.Exit( 1 ) 
+    flag.Parse( )
+
+    err := flag.Lookup( "logtostderr" ).Value.Set( "true" )
+    if err != nil {
+        glog.Fatalf( "Error setting logtostderr to true: %v", err )
     }
+
+    if len( *host ) == 0 {
+        glog.Fatalf( "Test host cannot be empty" )
+    }
+
+    glog.Infof( "Starting l7bench %v", version )
 
     httpBench := l7bhttp.NewHttpBench( )
 
-    httpBench.Host   = *host
-    httpBench.Method = *method
-    httpBench.Url    = *url
+    httpBench.Host = *host
 
-    httpBench.Secure             = *secure
-    httpBench.InsecureSkipVerify = *disable_server_auth
+    setupString( &httpBench.Method, method, "L7BENCH_TEST_METHOD" )
+    setupString( &httpBench.Url, url, "L7BENCH_TEST_URL" )
 
-    if len( *port ) > 0 {
-        if *secure {
-            if "443" != *port {
-                httpBench.Port = *port
-            }
-        } else {
-            if "80" != *port {
-                httpBench.Port = *port
-            }
+    setupBool( &httpBench.Secure, secure, "L7BENCH_TEST_SECURE" )
+    setupBool( &httpBench.InsecureSkipVerify, disable_server_auth, "L7BENCH_TEST_DISABLE_SERVER_AUTH" )
+
+    setupString( &httpBench.Port, port, "L7BENCH_TEST_PORT" )
+    if httpBench.Secure {
+        if "443" == httpBench.Port {
+            httpBench.Port = ""
+        }
+    } else {
+        if "80" == httpBench.Port {
+            httpBench.Port = ""
         }
     }
 
-    httpBench.ConcurrentConns = *concurrent_conns
-    httpBench.Duration        = *duration
-    httpBench.ConnReqs        = *conn_reqs
-    httpBench.ConnReqInterval = *conn_req_intvl
-    httpBench.IdleTimeout     = *idle_timeout
+    setupUint( &httpBench.ConcurrentConns, concurrent_conns, "L7BENCH_TEST_CONCURRENT_CONNS" )
+    setupUint( &httpBench.ConnReqs, conn_reqs, "L7BENCH_TEST_CONN_REQS" )
 
+    setupDuration( &httpBench.Duration, duration, "L7BENCH_TEST_DURATION" )
+    setupDuration( &httpBench.ConnReqInterval, conn_req_intvl, "L7BENCH_TEST_CONN_REQ_INTERVAL" )
+    setupDuration( &httpBench.IdleTimeout, idle_timeout, "L7BENCH_TEST_IDLE_TIMEOUT" )
+
+    glog.Infof( "Starting l7bench test %+v", httpBench )
     httpBench.Start( )
 }
+
+func setupString( field, arg *string, envVar string ) {
+    envVal := os.Getenv( envVar )
+    if len( envVal ) > 0 {
+        *field = envVal
+        return
+    }
+
+    if arg != nil && len( *arg ) > 0 {
+        *field = *arg
+    }
+}
+
+func setupBool( field, arg *bool, envVar string ) {
+    envVal := os.Getenv( envVar )
+    if len( envVal ) > 0 {
+        if boolVal, err := strconv.ParseBool( envVal ); err == nil {
+            *field = boolVal
+            return
+        }
+    }
+
+    if arg != nil {
+        *field = *arg
+    }
+}
+
+func setupUint( field, arg *uint, envVar string ) {
+    envVal := os.Getenv( envVar )
+    if len( envVal ) > 0 {
+        if uintVal, err := strconv.ParseUint( envVal, 10, 64 ); err == nil {
+            *field = uint( uintVal )
+            return
+        }
+    }
+
+    if arg != nil {
+        *field = *arg
+    }
+}
+
+func setupDuration( field, arg *time.Duration, envVar string ) {
+    envVal := os.Getenv( envVar )
+    if len( envVal ) > 0 {
+        if durVal, err := time.ParseDuration( envVal ); err == nil {
+            *field = durVal
+            return
+        }
+    }
+
+    if arg != nil {
+        *field = *arg
+    }
+} 
