@@ -6,11 +6,14 @@ import (
     "time"
     "io"
     "strings"
+    "bytes"
 
     "io/ioutil"
     "net/http"
     "crypto/tls"
     "github.com/golang/glog"
+
+    l7bhelpers "github.com/l7bench/internal/helpers"
 )
 
 func NewHttpBench( )( *HttpBench ) {
@@ -84,9 +87,23 @@ func ( hBench *HttpBench )setupRequest( )( err error ) {
         url += "/" + hBench.Url
     }
 
-    req, err := http.NewRequest( hBench.Method, url, nil )
+    reqBody, reqBodyLen, contentType := hBench.getRequestBody( )
+
+    var req *http.Request
+
+    if reqBody != nil {
+        req, err = http.NewRequest( hBench.Method, url, bytes.NewBuffer( reqBody ) )
+    } else {
+        req, err = http.NewRequest( hBench.Method, url, nil )
+    }
+
     if err != nil {
         return err
+    }
+
+    if reqBody != nil {
+        req.Header.Add( "Content-Type", contentType )
+        req.Header.Add( "Content-Length", fmt.Sprint( reqBodyLen ) )
     }
 
     req.Header.Add( "Accept", "*/*" )
@@ -94,6 +111,33 @@ func ( hBench *HttpBench )setupRequest( )( err error ) {
 
     hBench.request = req
     return nil
+}
+
+func ( hBench *HttpBench )getRequestBody( )( reqBody [ ]byte, reqBodyLen uint, contentType string ) {
+    if 0 == hBench.ReqBodySize {
+        return nil, 0, ""
+    }
+
+    contentType = "text/plain"
+
+    switch hBench.ReqBodyType {
+        case httpBenchReqBodyTypePlain:
+            reqBody    = [ ]byte( l7bhelpers.GetRandomString( hBench.ReqBodySize ) )
+            reqBodyLen = hBench.ReqBodySize
+
+        case httpBenchReqBodyTypeJson:
+            jsonStr, jsonStrLen := l7bhelpers.GetRandomJsonString( hBench.ReqBodySize )
+
+            reqBody     = [ ]byte( jsonStr )
+            reqBodyLen  = jsonStrLen
+            contentType = "application/json"
+
+        default:
+            reqBody    = [ ]byte( l7bhelpers.GetRandomString( hBench.ReqBodySize ) )
+            reqBodyLen = hBench.ReqBodySize
+    }
+
+    return reqBody, reqBodyLen, contentType
 }
 
 func ( hBench *HttpBench )startTest( ) {
