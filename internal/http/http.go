@@ -8,6 +8,7 @@ import (
     "strings"
     "bytes"
 
+    "math/rand"
     "io/ioutil"
     "net/http"
     "crypto/tls"
@@ -30,6 +31,8 @@ func NewHttpBench( )( *HttpBench ) {
         httpBenchCtx        :   httpBenchCtx {
             wg              :   &sync.WaitGroup{ }, 
             duration_chan   :   make( chan bool ),
+            request         :   nil,
+            requestBody     :   nil,
         },
     }
 }
@@ -87,23 +90,16 @@ func ( hBench *HttpBench )setupRequest( )( err error ) {
         url += "/" + hBench.Url
     }
 
-    reqBody, reqBodyLen, contentType := hBench.getRequestBody( )
+    reqBody, _, contentType := hBench.getRequestBody( )
 
-    var req *http.Request
-
-    if reqBody != nil {
-        req, err = http.NewRequest( hBench.Method, url, bytes.NewBuffer( reqBody ) )
-    } else {
-        req, err = http.NewRequest( hBench.Method, url, nil )
-    }
-
+    req, err := http.NewRequest( hBench.Method, url, nil )
     if err != nil {
         return err
     }
 
     if reqBody != nil {
+        hBench.requestBody = reqBody
         req.Header.Add( "Content-Type", contentType )
-        req.Header.Add( "Content-Length", fmt.Sprint( reqBodyLen ) )
     }
 
     req.Header.Add( "Accept", "*/*" )
@@ -191,8 +187,17 @@ func ( hBench *HttpBench )runSingleTest( ) {
         hBench.wg.Done( )
     }( )
 
-    for i := uint( 0 ); i < hBench.ConnReqs; i++ {
-        err := hBench.sendSingleRequest( httpClient )
+    err := hBench.sendSingleRequest( httpClient )
+    if err != nil {
+        glog.Errorf( "Test failed with error %v", err )
+        return
+    }
+
+    time.Sleep( hBench.ConnReqInterval )
+    time.Sleep( time.Duration( rand.Intn( 1000 ) ) * time.Millisecond )
+
+    for i := uint( 1 ); i < hBench.ConnReqs; i++ {
+        err = hBench.sendSingleRequest( httpClient )
         if err != nil {
             glog.Errorf( "Test failed with error %v", err )
             break
@@ -203,6 +208,10 @@ func ( hBench *HttpBench )runSingleTest( ) {
 }
 
 func ( hBench *HttpBench )sendSingleRequest( httpClient *http.Client )( err error ) {
+    if hBench.requestBody != nil {
+        hBench.request.Body = ioutil.NopCloser( bytes.NewBuffer( hBench.requestBody ) )
+    }
+
     resp, err := httpClient.Do( hBench.request )
     if err != nil {
         return err

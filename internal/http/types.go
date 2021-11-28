@@ -13,6 +13,7 @@ type httpBenchCtx struct {
     duration_chan         chan bool
 
     request              *http.Request
+    requestBody        [ ]byte 
 }
 
 type httpBenchReqBodyType string
