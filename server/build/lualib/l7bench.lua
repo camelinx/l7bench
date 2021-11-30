@@ -1,10 +1,13 @@
 local _M = { }
 
+local strchar = string.char
+local mthrand = math.random
+
 local function get_random_string( length )
     local res = ""
 
     for i = 1, length do
-        res = res .. string.char( math.random( 97, 122 ) )
+        res = res .. strchar( mthrand( 97, 122 ) )
     end
 
     return res
